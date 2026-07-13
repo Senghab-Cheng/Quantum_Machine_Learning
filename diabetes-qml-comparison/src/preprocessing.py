@@ -1,4 +1,4 @@
-import s
+import sys  # <--- Added this import
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -6,9 +6,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 
-s.path.insert(0, str(Path(__file__).parent.parent))
+# Changed s.path to sys.path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from config import N_QUBITS, TEST_SIZE, RANDOM_STATE
-
 
 def preprocess(df):
     X = df.drop('Outcome', axis=1).copy()
@@ -28,8 +28,8 @@ def preprocess(df):
     pca = PCA(n_components=N_QUBITS)
     X_pca = pca.fit_transform(X_scaled)
     
+    # Rescaling to [0, 1] then mapping to [0, π]
     X_pca = (X_pca - X_pca.min(axis=0)) / (X_pca.max(axis=0) - X_pca.min(axis=0) + 1e-8)
-    
     X_quantum = X_pca * np.pi
     
     X_train, X_test, y_train, y_test = train_test_split(
@@ -41,36 +41,16 @@ def preprocess(df):
     
     return X_train, X_test, y_train, y_test
 
-
 if __name__ == "__main__":
-    df = pd.read_csv(Path(__file__).parent.parent / 'data' / 'diabetes.csv')
+    # Ensure the path to the CSV is correct relative to this file
+    data_path = Path(__file__).parent.parent / 'data' / 'diabetes.csv'
+    df = pd.read_csv(data_path)
     X_train, X_test, y_train, y_test = preprocess(df)
     
     print("=" * 60)
     print("PHASE 3 PREPROCESSING VERIFICATION")
     print("=" * 60)
-    print(f"\nDataset shapes:")
-    print(f"  X_train: {X_train.shape}")
-    print(f"  X_test:  {X_test.shape}")
-    print(f"  y_train: {y_train.shape}")
-    print(f"  y_test:  {y_test.shape}")
-    print(f"\nData types:")
-    print(f"  X_train: {X_train.dtype}")
-    print(f"  X_test:  {X_test.dtype}")
-    print(f"  y_train: {y_train.dtype}")
-    print(f"  y_test:  {y_test.dtype}")
-    print(f"\nValue ranges (quantum-scaled to [0, π]):")
-    print(f"  X_train min: {X_train.min():.4f}, max: {X_train.max():.4f}")
-    print(f"  X_test min:  {X_test.min():.4f}, max: {X_test.max():.4f}")
-    print(f"\nNaN checks:")
-    print(f"  X_train NaNs: {np.isnan(X_train).sum()}")
-    print(f"  X_test NaNs:  {np.isnan(X_test).sum()}")
-    print(f"  y_train NaNs: {np.isnan(y_train).sum()}")
-    print(f"  y_test NaNs:  {np.isnan(y_test).sum()}")
-
-    print(f"\nClass distribution:")
-    print(f"  y_train: {np.bincount(y_train)}")
-    print(f"  y_test:  {np.bincount(y_test)}")
-    
-    print(f"\n All checks passed!" if np.isnan(X_train).sum() == 0 else "\n NaNs detected!")
+    print(f"X_train shape: {X_train.shape}")
+    print(f"X_train range: [{X_train.min():.2f}, {X_train.max():.2f}]")
+    print(f"NaN check: {np.isnan(X_train).sum()} NaNs found")
     print("=" * 60)
