@@ -10,7 +10,7 @@ TEST_SIZE = 0.2
 RANDOM_STATE = 42
 
 # VQC (Variational Quantum Classifier) hyperparameters
-VQC_MAX_ITER = 100
+VQC_MAX_ITER = 30
 VQC_LEARNING_RATE = 0.01
 VQC_OPTIMIZER = "COBYLA"
 

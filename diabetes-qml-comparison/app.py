@@ -45,7 +45,7 @@ def get_pipeline():
     return fit_pipeline()
 
 
-@st.cache_resource(show_spinner="Training classical models...")
+@st.cache_resource(show_spinner="Training models (classical + quantum)...")
 def get_trained_models(_pipeline):
     models = get_all_models()
     trained, training_info = train_all_models(models, _pipeline["X_train"], _pipeline["y_train"])
@@ -112,7 +112,7 @@ st.markdown(
       <div>
         <h1>Diabetes Risk Comparison</h1>
         <p>Pima Indians Diabetes dataset &middot; Classical ML baselines &middot;
-        Quantum models (VQC / QSVM) are not implemented yet</p>
+        Quantum models (VQC / QSVM)</p>
       </div>
     </div>
     """,
@@ -211,7 +211,7 @@ elif selected == "Compare Models":
 
     st.markdown('<div style="height:18px"></div>', unsafe_allow_html=True)
     st.markdown(
-        f'<h3 style="display:flex;align-items:center;gap:10px;">{icon_clipboard(26)} Classical model comparison</h3>',
+        f'<h3 style="display:flex;align-items:center;gap:10px;">{icon_clipboard(26)} Model comparison (classical + quantum)</h3>',
         unsafe_allow_html=True,
     )
     st.dataframe(base_df.style.format("{:.4f}").highlight_max(
@@ -220,7 +220,7 @@ elif selected == "Compare Models":
     st.altair_chart(grouped_metric_chart(base_df, ["Accuracy", "Precision", "Recall", "F1 Score"]))
 
     st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
-    if st.button("Run hyperparameter tuning (GridSearchCV, ~10-20s)"):
+    if st.button("Run hyperparameter tuning for classical models (GridSearchCV, ~10-20s)"):
         tuned_models, tuned_results, best_params = get_tuned_models(pipeline)
         tuned_df = results_to_df(tuned_results)
 

@@ -25,13 +25,21 @@ from sklearn.metrics import (
 from sklearn.model_selection import GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
 
-# Make `config`, `data_loader` and `preprocessing` importable regardless of
-# whether this file is run as a script, via `-m`, or imported elsewhere.
+# Make `config`, `data_loader`, `preprocessing`, and sibling model modules
+# importable regardless of how this file is loaded.
 _SRC_DIR = Path(__file__).resolve().parent.parent
 _PROJECT_ROOT = _SRC_DIR.parent
-for _path in (str(_PROJECT_ROOT), str(_SRC_DIR)):
+_MODELS_DIR = Path(__file__).resolve().parent
+for _path in (str(_PROJECT_ROOT), str(_SRC_DIR), str(_MODELS_DIR)):
     if _path not in sys.path:
         sys.path.insert(0, _path)
+
+try:
+    from .quantum_qsvm_model import build_qsvm
+    from .quantum_vqc_model import build_vqc
+except ImportError:
+    from quantum_qsvm_model import build_qsvm
+    from quantum_vqc_model import build_vqc
 
 import config
 from data_loader import load_data
@@ -79,6 +87,8 @@ MODEL_BUILDERS: Dict[str, Callable[[], Any]] = {
     "Logistic Regression": build_logistic_regression,
     "Decision Tree": build_decision_tree,
     "Random Forest": build_random_forest,
+    "QSVM": build_qsvm,
+    "VQC": build_vqc,
 }
 
 MODEL_INFO: Dict[str, Dict[str, Any]] = {
@@ -96,6 +106,16 @@ MODEL_INFO: Dict[str, Dict[str, Any]] = {
         "description": "Ensemble of decision trees combined by majority vote; robust and accurate.",
         "type": "Ensemble",
         "key_parameters": ["n_estimators", "max_depth", "min_samples_split", "max_features"],
+    },
+    "QSVM": {
+        "description": "Quantum Support Vector Machine using a quantum kernel.",
+        "type": "Quantum",
+        "key_parameters": ["feature_map", "kernel", "C"],
+    },
+    "VQC": {
+        "description": "Variational Quantum Classifier using a parameterized circuit.",
+        "type": "Quantum",
+        "key_parameters": ["feature_map", "ansatz", "optimizer"],
     },
 }
 
@@ -137,6 +157,7 @@ def train_all_models(
     """
     trained_models: Dict[str, Any] = {}
     training_info: Dict[str, Dict[str, float]] = {}
+    y_train = np.asarray(y_train).ravel()
 
     for name, model in models.items():
         start = time.perf_counter()
@@ -166,6 +187,7 @@ def evaluate_all_models(
     `training_info` (Training Time / Train Accuracy) when supplied.
     """
     results: Dict[str, Dict[str, Any]] = {}
+    y_test = np.asarray(y_test).ravel()
 
     for name, model in trained_models.items():
         start = time.perf_counter()
@@ -298,6 +320,10 @@ def tune_all_models(
     best_params: Dict[str, Dict[str, Any]] = {}
 
     for name, builder in MODEL_BUILDERS.items():
+        if name not in TUNING_GRIDS:
+            if verbose:
+                print(f"    Skipping {name} (no tuning grid defined)")
+            continue
         if verbose:
             print(f"    Tuning {name}...")
         grid = GridSearchCV(
@@ -514,7 +540,7 @@ def get_model_interface(model_type: str) -> Dict[str, Any]:
         raise ValueError(f"Unknown model '{model_type}'. Choose from {list(MODEL_BUILDERS)}.")
     return {
         "name": model_type,
-        "type": "Classical",
+        "type": MODEL_INFO[model_type]["type"],
         "build": MODEL_BUILDERS[model_type],
         "train": train_model,
         "predict": predict,
